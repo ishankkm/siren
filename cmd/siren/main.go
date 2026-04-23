@@ -27,12 +27,26 @@ import (
 	"github.com/ishankkm/siren/internal/state"
 )
 
+// Build info, populated via -ldflags by GoReleaser.
+var (
+	version = "dev"
+	commit  = "none"
+	date    = "unknown"
+)
+
 func main() {
 	configPath := flag.String("config", "/etc/siren/siren.yaml", "path to YAML config file")
+	showVersion := flag.Bool("version", false, "print version and exit")
 	flag.Parse()
+
+	if *showVersion {
+		fmt.Printf("siren %s (commit %s, built %s)\n", version, commit, date)
+		return
+	}
 
 	logger := slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelInfo}))
 	slog.SetDefault(logger)
+	logger.Info("siren version", "version", version, "commit", commit, "date", date)
 
 	cfg, err := config.Load(*configPath)
 	if err != nil {
