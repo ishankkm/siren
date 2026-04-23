@@ -1,0 +1,29 @@
+[Unit]
+Description=siren - per-host service monitor with Discord alerts
+Documentation=https://github.com/ishankkm/siren
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=siren
+Group=siren
+EnvironmentFile=/etc/siren/siren.env
+ExecStart=/usr/local/bin/siren -config /etc/siren/siren.yaml
+Restart=on-failure
+RestartSec=5s
+
+# Hardening
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+ReadWritePaths=/var/lib/siren
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+LockPersonality=true
+
+[Install]
+WantedBy=multi-user.target
