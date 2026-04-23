@@ -1,0 +1,31 @@
+operator:
+  discord_user_id: "REPLACE_WITH_YOUR_DISCORD_USER_ID"
+
+discord:
+  token_env: SIREN_DISCORD_TOKEN
+  outbound_queue_size: 256
+
+services:
+  - name: bots
+    log_paths:
+      - /var/log/bots/*.log
+    log_match:
+      regex: '(?i)\b(error|panic|fatal)\b'
+    log_levels: [error, fatal]
+    process:
+      systemd_unit: bots.service
+    health:
+      url: http://127.0.0.1:8080/healthz
+      interval: 15s
+
+dedup:
+  suppression_window: 5m
+  max_dm_per_minute: 10
+
+redact:
+  - pattern: '(?i)bearer\s+[A-Za-z0-9._-]+'
+    replacement: '[REDACTED]'
+  - pattern: '[A-Za-z0-9]{32,}'
+    replacement: '[TOKEN]'
+
+state_dir: /var/lib/siren

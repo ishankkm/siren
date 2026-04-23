@@ -1,0 +1,21 @@
+# Build artifacts
+/bin/
+/dist/
+/siren
+/siren.exe
+
+# Go
+*.test
+*.out
+coverage.txt
+vendor/
+
+# Editor / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Local config / state
+*.local.yaml
+/state/
