@@ -22,7 +22,7 @@ This document describes the architecture of `siren`, a per-host monitoring proce
 
 | Concern              | Choice                                                  |
 | -------------------- | ------------------------------------------------------- |
-| Language             | Go (1.22+)                                              |
+| Language             | Go (1.23+)                                              |
 | Module path          | `siren` *(placeholder — swap for repo URL when known)* |
 | Discord library      | [`bwmarrin/discordgo`](https://github.com/bwmarrin/discordgo) |
 | Log tailing          | [`nxadm/tail`](https://github.com/nxadm/tail) (handles rotation) |

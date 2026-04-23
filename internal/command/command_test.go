@@ -4,10 +4,10 @@ import "testing"
 
 func TestParse(t *testing.T) {
 	cases := []struct {
-		in     string
-		ok     bool
-		kind   Kind
-		args   []string
+		in   string
+		ok   bool
+		kind Kind
+		args []string
 	}{
 		{"!help", true, KindHelp, nil},
 		{"  !ack abc  ", true, KindAck, []string{"abc"}},
