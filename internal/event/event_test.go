@@ -30,16 +30,16 @@ func TestFingerprintStability(t *testing.T) {
 
 func TestParseSeverity(t *testing.T) {
 	cases := map[string]Severity{
-		"debug":    SeverityInfo,
-		"INFO":     SeverityInfo,
-		"warn":     SeverityWarn,
-		"warning":  SeverityWarn,
-		"error":    SeverityError,
-		"ERR":      SeverityError,
-		"fatal":    SeverityCritical,
-		"panic":    SeverityCritical,
-		"":         SeverityError, // unknown -> error (safe default)
-		"banana":   SeverityError,
+		"debug":   SeverityInfo,
+		"INFO":    SeverityInfo,
+		"warn":    SeverityWarn,
+		"warning": SeverityWarn,
+		"error":   SeverityError,
+		"ERR":     SeverityError,
+		"fatal":   SeverityCritical,
+		"panic":   SeverityCritical,
+		"":        SeverityError, // unknown -> error (safe default)
+		"banana":  SeverityError,
 	}
 	for in, want := range cases {
 		if got := ParseSeverity(in); got != want {

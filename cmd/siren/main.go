@@ -16,8 +16,8 @@ import (
 
 	"github.com/ishankkm/siren/internal/collector"
 	"github.com/ishankkm/siren/internal/collector/logc"
-	"github.com/ishankkm/siren/internal/collector/proc"
 	"github.com/ishankkm/siren/internal/collector/probe"
+	"github.com/ishankkm/siren/internal/collector/proc"
 	"github.com/ishankkm/siren/internal/command"
 	"github.com/ishankkm/siren/internal/config"
 	"github.com/ishankkm/siren/internal/dedup"
