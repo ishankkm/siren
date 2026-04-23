@@ -50,3 +50,4 @@ Out of scope:
 ## Documentation
 
 - [docs/TECHNICAL.md](docs/TECHNICAL.md) — architecture, components, and data flow.
+- [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) — install, configure, and run on a Linux host.
