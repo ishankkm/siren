@@ -18,7 +18,30 @@ services it monitors. Architecture and design rationale live in
   to any server you and the bot share, or share at least one mutual server.
   No special permissions are required beyond DM.
 
-## 2. Build
+## 2. Get the binary
+
+### 2a. From a release tarball (recommended)
+
+Download the latest release tarball for your architecture from
+<https://github.com/ishankkm/siren/releases>, verify it against
+`checksums.txt`, and extract:
+
+```sh
+VERSION=0.1.0
+ARCH=amd64   # or arm64
+curl -fsSLO https://github.com/ishankkm/siren/releases/download/v${VERSION}/siren_${VERSION}_linux_${ARCH}.tar.gz
+curl -fsSLO https://github.com/ishankkm/siren/releases/download/v${VERSION}/checksums.txt
+sha256sum --check --ignore-missing checksums.txt
+tar -xzf siren_${VERSION}_linux_${ARCH}.tar.gz
+# leaves ./siren in the current directory
+install -d bin && mv siren bin/siren
+```
+
+The released binary is fully static (CGO disabled, stripped) and has no
+runtime dependencies. `siren -version` prints the version, commit, and
+build date injected at release time.
+
+### 2b. Build from source
 
 From a checkout on a Linux build host (or cross-compile from anywhere):
 
