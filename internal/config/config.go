@@ -1,14 +1,15 @@
 // Package config loads and validates siren's YAML configuration.
-//
-// The full YAML parser is intentionally not wired up in this scaffold; the
-// real implementation will use gopkg.in/yaml.v3. For now Load returns a
-// zero-value Config so the rest of the program can be built and run.
 package config
 
 import (
+	"bytes"
 	"errors"
+	"fmt"
 	"os"
+	"regexp"
 	"time"
+
+	"gopkg.in/yaml.v3"
 )
 
 // Config is the top-level siren configuration.
@@ -72,15 +73,96 @@ type Redact struct {
 	Replacement string `yaml:"replacement"`
 }
 
-// Load reads and parses a YAML config file from disk.
-//
-// TODO: parse YAML with gopkg.in/yaml.v3 and validate required fields.
+// Load reads, parses, and validates a YAML config file from disk.
+// Defaults are applied for omitted optional fields.
 func Load(path string) (*Config, error) {
-	if _, err := os.Stat(path); err != nil {
-		return nil, err
-	}
 	if path == "" {
 		return nil, errors.New("config path is empty")
 	}
-	return &Config{}, nil
+	b, err := os.ReadFile(path)
+	if err != nil {
+		return nil, fmt.Errorf("read config: %w", err)
+	}
+	var c Config
+	dec := yaml.NewDecoder(bytes.NewReader(b))
+	dec.KnownFields(true)
+	if err := dec.Decode(&c); err != nil {
+		return nil, fmt.Errorf("parse config: %w", err)
+	}
+	c.applyDefaults()
+	if err := c.Validate(); err != nil {
+		return nil, err
+	}
+	return &c, nil
+}
+
+// applyDefaults fills in safe defaults for optional fields.
+func (c *Config) applyDefaults() {
+	if c.Discord.OutboundQueueSize == 0 {
+		c.Discord.OutboundQueueSize = 256
+	}
+	if c.Dedup.SuppressionWindow == 0 {
+		c.Dedup.SuppressionWindow = 5 * time.Minute
+	}
+	if c.Dedup.MaxDMPerMinute == 0 {
+		c.Dedup.MaxDMPerMinute = 10
+	}
+	if c.StateDir == "" {
+		c.StateDir = "/var/lib/siren"
+	}
+	for i := range c.Services {
+		if c.Services[i].Health.URL != "" && c.Services[i].Health.Interval == 0 {
+			c.Services[i].Health.Interval = 15 * time.Second
+		}
+	}
+}
+
+// Validate returns an error describing the first problem found.
+func (c *Config) Validate() error {
+	if c.Operator.DiscordUserID == "" {
+		return errors.New("operator.discord_user_id is required")
+	}
+	if c.Discord.TokenEnv == "" {
+		return errors.New("discord.token_env is required")
+	}
+	if len(c.Services) == 0 {
+		return errors.New("at least one service must be configured")
+	}
+	seen := make(map[string]struct{})
+	for i, s := range c.Services {
+		if s.Name == "" {
+			return fmt.Errorf("services[%d].name is required", i)
+		}
+		if _, dup := seen[s.Name]; dup {
+			return fmt.Errorf("duplicate service name %q", s.Name)
+		}
+		seen[s.Name] = struct{}{}
+		if s.LogMatch.Regex != "" {
+			if _, err := regexp.Compile(s.LogMatch.Regex); err != nil {
+				return fmt.Errorf("services[%d] (%s): bad log_match.regex: %w", i, s.Name, err)
+			}
+		}
+		hasSource := len(s.LogPaths) > 0 || s.Process.SystemdUnit != "" || s.Process.PIDFile != "" || s.Health.URL != ""
+		if !hasSource {
+			return fmt.Errorf("services[%d] (%s): no log_paths, process, or health configured", i, s.Name)
+		}
+	}
+	for i, r := range c.Redact {
+		if r.Pattern == "" {
+			return fmt.Errorf("redact[%d]: pattern is required", i)
+		}
+		if _, err := regexp.Compile(r.Pattern); err != nil {
+			return fmt.Errorf("redact[%d]: bad pattern: %w", i, err)
+		}
+	}
+	return nil
+}
+
+// Token returns the Discord bot token from the configured environment variable.
+func (c *Config) Token() (string, error) {
+	v := os.Getenv(c.Discord.TokenEnv)
+	if v == "" {
+		return "", fmt.Errorf("env var %s is unset", c.Discord.TokenEnv)
+	}
+	return v, nil
 }

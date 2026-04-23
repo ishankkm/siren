@@ -24,9 +24,10 @@ type Store struct {
 	data File
 }
 
-// Open loads the state file at path, creating an empty one if it does not exist.
+// Open loads the state file at path, creating an empty in-memory state if it
+// does not exist. The parent directory must already exist.
 func Open(path string) (*Store, error) {
-	s := &Store{path: path, data: File{Version: 1}}
+	s := &Store{path: path, data: File{Version: 1, Mutes: map[string]time.Time{}, Acked: map[string]time.Time{}}}
 	b, err := os.ReadFile(path)
 	if os.IsNotExist(err) {
 		return s, nil
@@ -40,7 +41,60 @@ func Open(path string) (*Store, error) {
 	if err := json.Unmarshal(b, &s.data); err != nil {
 		return nil, err
 	}
+	if s.data.Mutes == nil {
+		s.data.Mutes = map[string]time.Time{}
+	}
+	if s.data.Acked == nil {
+		s.data.Acked = map[string]time.Time{}
+	}
 	return s, nil
+}
+
+// Mute records an active mute for a service.
+func (s *Store) Mute(service string, until time.Time) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.data.Mutes[service] = until
+}
+
+// Unmute removes a mute.
+func (s *Store) Unmute(service string) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	delete(s.data.Mutes, service)
+}
+
+// IsMuted reports whether a service is currently muted (and prunes expired entries).
+func (s *Store) IsMuted(service string, now time.Time) bool {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	exp, ok := s.data.Mutes[service]
+	if !ok {
+		return false
+	}
+	if !now.Before(exp) {
+		delete(s.data.Mutes, service)
+		return false
+	}
+	return true
+}
+
+// Ack records an acknowledgement for a fingerprint with a TTL.
+func (s *Store) Ack(fingerprint string, until time.Time) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.data.Acked[fingerprint] = until
+}
+
+// Mutes returns a copy of the current mute map.
+func (s *Store) Mutes() map[string]time.Time {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	out := make(map[string]time.Time, len(s.data.Mutes))
+	for k, v := range s.data.Mutes {
+		out[k] = v
+	}
+	return out
 }
 
 // Save writes the current state atomically.
@@ -51,7 +105,11 @@ func (s *Store) Save() error {
 	if err != nil {
 		return err
 	}
-	tmp, err := os.CreateTemp(filepath.Dir(s.path), ".siren.state.*.tmp")
+	dir := filepath.Dir(s.path)
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		return err
+	}
+	tmp, err := os.CreateTemp(dir, ".siren.state.*.tmp")
 	if err != nil {
 		return err
 	}

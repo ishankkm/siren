@@ -1,12 +1,11 @@
-// Package command parses and dispatches operator-issued Discord DM commands.
+// Package command parses operator-issued Discord DM commands.
 //
 // Supported in v1: !ack, !mute, !unmute, !status, !help. Only messages from
-// the configured operator user ID are accepted; everything else is ignored.
+// the configured operator user ID should be passed in; this package does
+// not enforce that itself.
 package command
 
-import (
-	"strings"
-)
+import "strings"
 
 // Kind enumerates the supported command verbs.
 type Kind string
@@ -56,3 +55,11 @@ func Parse(body string) (Command, bool) {
 	}
 	return c, true
 }
+
+// HelpText is the canonical reply for !help.
+const HelpText = "siren commands:\n" +
+	"  !ack <fingerprint>      acknowledge an alert (clears its suppression)\n" +
+	"  !mute <service> <dur>   mute a service for a duration (e.g. 1h, 30m)\n" +
+	"  !unmute <service>       remove a mute\n" +
+	"  !status                 show services, mutes, queue depth, uptime\n" +
+	"  !help                   show this message"

@@ -8,12 +8,13 @@ import (
 	"github.com/ishankkm/siren/internal/event"
 )
 
-// Collector watches one source and emits events on the returned channel
-// until ctx is cancelled. Implementations must close the channel on exit.
+// Collector watches one source and emits events on the provided channel
+// until ctx is cancelled.
 type Collector interface {
 	// Name returns a stable identifier for logging.
 	Name() string
 
 	// Run starts the collector. It must return promptly when ctx is done.
+	// Implementations must not close out.
 	Run(ctx context.Context, out chan<- event.Event) error
 }
