@@ -56,6 +56,7 @@ type Source string
 
 const (
 	SourceLog     Source = "log"
+	SourceJournal Source = "journal"
 	SourceProcess Source = "process"
 	SourceProbe   Source = "probe"
 )

@@ -64,15 +64,18 @@ One siren instance = one host = one operator.
 
 ### 3.1 Collectors
 
-Collectors are the inputs. Each collector watches one source and emits raw events. v1 ships three:
+Collectors are the inputs. Each collector watches one source and emits raw events. v1 ships four:
 
 | Collector       | Source                                          | Emits                                |
 | --------------- | ----------------------------------------------- | ------------------------------------ |
 | Log tail        | Log files (auto-detect plain text vs JSON-line) | Lines matching error regex / level   |
+| Journal         | systemd-journald, scoped to one unit            | Records at/below a PRIORITY threshold (optional regex on `MESSAGE`) |
 | Process watcher | PID / systemd unit                              | Non-zero exit, unexpected stop       |
 | Health probe    | HTTP or TCP endpoint                            | Up → down and down → up transitions  |
 
 **Log tail** detects format per source on first read: if the first non-empty line parses as a JSON object containing a recognized level field (`level`, `lvl`, `severity`), the source is treated as JSON-line and severity is read from that field; otherwise it falls back to regex matching on plain text. On startup each tailer seeks to **EOF** — historical lines are not replayed.
+
+**Journal** subscribes to `journalctl -u <unit> -f -o json --since now -n 0`, parses each JSON record, drops anything with `PRIORITY` numerically greater than the configured threshold (default `err`/3), optionally filters `MESSAGE` against a regex, and emits an `Event` with `source=journal`. The subprocess is restarted with bounded backoff if it exits while siren is still running; in-flight lines during a restart are dropped (see §7). Reading another unit's journal requires the siren user to be a member of `systemd-journal` — no root needed.
 
 Collectors are pluggable. Adding a new source means implementing the collector interface and wiring it in via config.
 
@@ -186,6 +189,10 @@ services:
     health:
       url: http://127.0.0.1:8080/healthz
       interval: 15s
+    journal:
+      unit: bots.service          # _SYSTEMD_UNIT match
+      priority: err               # max PRIORITY kept; default err (3)
+      regex: '(?i)\b(error|panic|fatal)\b'   # optional MESSAGE filter
 
 dedup:
   suppression_window: 5m
