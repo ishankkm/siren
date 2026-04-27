@@ -22,9 +22,26 @@ services it monitors. Architecture and design rationale live in
 
 ### 2a. From a release tarball (recommended)
 
-Download the latest release tarball for your architecture from
-<https://github.com/ishankkm/siren/releases>, verify it against
-`checksums.txt`, and extract:
+The fastest path is the install script, which detects your arch, downloads
+the latest release tarball, verifies its sha256, and copies the binary to
+`/usr/local/bin/siren` (preserving any previous copy as `siren.prev`):
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/ishankkm/siren/main/install.sh | sudo bash
+```
+
+To pin a version or change the install path:
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/ishankkm/siren/main/install.sh \
+  | sudo VERSION=v0.2.0 PREFIX=/opt/siren/bin bash
+```
+
+The script does **not** create users, write config, install the systemd unit,
+or start anything — those steps are §3 onward, deliberately separate so you
+can review them.
+
+If you would rather do it by hand:
 
 ```sh
 VERSION=0.1.0
@@ -141,11 +158,17 @@ if it crashes. The startup DM will also be re-sent on each restart.
 
 ### Updating siren
 
+Re-run the install script and bounce the service:
+
 ```sh
-sudo systemctl stop siren
-sudo install -m 0755 bin/siren /usr/local/bin/siren   # new build
-sudo systemctl start siren
+curl -fsSL https://raw.githubusercontent.com/ishankkm/siren/main/install.sh | sudo bash
+sudo systemctl restart siren
 ```
+
+The previous binary is preserved as `/usr/local/bin/siren.prev` so you can
+roll back with `sudo mv /usr/local/bin/siren.prev /usr/local/bin/siren && sudo systemctl restart siren`.
+
+For source builds, replace step 1 with `sudo install -m 0755 bin/siren /usr/local/bin/siren`.
 
 State (mutes, acks) survives restarts via `/var/lib/siren/siren.state.json`.
 
