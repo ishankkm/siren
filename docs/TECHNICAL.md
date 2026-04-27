@@ -38,7 +38,7 @@ This document describes the architecture of `siren`, a per-host monitoring proce
 ┌──────────────────────────── host ────────────────────────────┐
 │                                                              │
 │   ┌───────────────┐    ┌───────────────┐    ┌─────────────┐  │
-│   │  src/bots     │    │  other svc A  │    │ other svc B │  │
+│   │  service A    │    │  service B    │    │ service C   │  │
 │   └──────┬────────┘    └──────┬────────┘    └──────┬──────┘  │
 │          │ logs / exit codes  │                    │         │
 │          ▼                    ▼                    ▼         │
