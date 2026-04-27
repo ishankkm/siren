@@ -17,6 +17,13 @@ services:
     health:
       url: http://127.0.0.1:8080/healthz
       interval: 15s
+    # journal: subscribe to systemd-journald instead of (or in addition to)
+    # tailing files. Useful for services that log only to journald (the
+    # default for systemd-managed units that don't redirect StandardOutput).
+    # journal:
+    #   unit: bots.service       # _SYSTEMD_UNIT match
+    #   priority: err            # max PRIORITY kept (emerg|alert|crit|err|warning|notice|info|debug or 0..7); default err
+    #   regex: '(?i)\b(error|panic|fatal)\b'   # optional MESSAGE filter
 
 dedup:
   suppression_window: 5m

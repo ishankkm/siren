@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/ishankkm/siren/internal/collector"
+	"github.com/ishankkm/siren/internal/collector/journal"
 	"github.com/ishankkm/siren/internal/collector/logc"
 	"github.com/ishankkm/siren/internal/collector/probe"
 	"github.com/ishankkm/siren/internal/collector/proc"
@@ -187,6 +188,15 @@ func buildCollectors(cfg *config.Config, logger *slog.Logger) []collector.Collec
 		}
 		if s.Health.URL != "" {
 			out = append(out, probe.New(s.Name, s.Health.URL, s.Health.Interval, logger))
+		}
+		if s.Journal.Unit != "" {
+			pri, _ := s.Journal.JournalPriority() // validated by config.Validate
+			jc, err := journal.New(s.Name, s.Journal.Unit, pri, s.Journal.Regex, logger)
+			if err != nil {
+				logger.Error("journal collector init failed", "service", s.Name, "err", err)
+				continue
+			}
+			out = append(out, jc)
 		}
 	}
 	return out

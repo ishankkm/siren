@@ -82,3 +82,81 @@ services:
 		t.Fatal("expected error for service with no sources")
 	}
 }
+
+func TestLoadJournalValid(t *testing.T) {
+	p := writeTemp(t, `
+operator:
+  discord_user_id: "1"
+discord:
+  token_env: X
+services:
+  - name: bots
+    journal:
+      unit: bots.service
+      priority: err
+      regex: '(?i)\b(error|panic)\b'
+`)
+	c, err := Load(p)
+	if err != nil {
+		t.Fatal(err)
+	}
+	pri, ok := c.Services[0].Journal.JournalPriority()
+	if !ok || pri != 3 {
+		t.Fatalf("expected priority=3 ok, got %d ok=%v", pri, ok)
+	}
+}
+
+func TestLoadJournalDefaultPriority(t *testing.T) {
+	p := writeTemp(t, `
+operator:
+  discord_user_id: "1"
+discord:
+  token_env: X
+services:
+  - name: bots
+    journal:
+      unit: bots.service
+`)
+	c, err := Load(p)
+	if err != nil {
+		t.Fatal(err)
+	}
+	pri, ok := c.Services[0].Journal.JournalPriority()
+	if !ok || pri != 3 {
+		t.Fatalf("default priority should be 3 (err), got %d ok=%v", pri, ok)
+	}
+}
+
+func TestLoadJournalBadPriority(t *testing.T) {
+	p := writeTemp(t, `
+operator:
+  discord_user_id: "1"
+discord:
+  token_env: X
+services:
+  - name: bots
+    journal:
+      unit: bots.service
+      priority: bogus
+`)
+	if _, err := Load(p); err == nil {
+		t.Fatal("expected error for bad journal.priority")
+	}
+}
+
+func TestLoadJournalBadRegex(t *testing.T) {
+	p := writeTemp(t, `
+operator:
+  discord_user_id: "1"
+discord:
+  token_env: X
+services:
+  - name: bots
+    journal:
+      unit: bots.service
+      regex: '(?P<'
+`)
+	if _, err := Load(p); err == nil {
+		t.Fatal("expected error for bad journal.regex")
+	}
+}

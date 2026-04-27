@@ -42,6 +42,18 @@ type Service struct {
 	LogLevels []string `yaml:"log_levels"`
 	Process   Process  `yaml:"process"`
 	Health    Health   `yaml:"health"`
+	Journal   Journal  `yaml:"journal"`
+}
+
+// Journal configures a systemd-journald subscription for one unit.
+//
+// Priority is the maximum (i.e. least severe) journald PRIORITY to keep.
+// Accepts the syslog level names (emerg|alert|crit|err|warning|notice|info|debug)
+// or the numeric form ("0".."7"). Empty defaults to "err" (3).
+type Journal struct {
+	Unit     string `yaml:"unit"`
+	Priority string `yaml:"priority"`
+	Regex    string `yaml:"regex"`
 }
 
 // LogMatch configures plain-text log matching.
@@ -142,9 +154,21 @@ func (c *Config) Validate() error {
 				return fmt.Errorf("services[%d] (%s): bad log_match.regex: %w", i, s.Name, err)
 			}
 		}
-		hasSource := len(s.LogPaths) > 0 || s.Process.SystemdUnit != "" || s.Process.PIDFile != "" || s.Health.URL != ""
+		if s.Journal.Unit != "" {
+			if s.Journal.Regex != "" {
+				if _, err := regexp.Compile(s.Journal.Regex); err != nil {
+					return fmt.Errorf("services[%d] (%s): bad journal.regex: %w", i, s.Name, err)
+				}
+			}
+			if s.Journal.Priority != "" {
+				if _, ok := parseJournalPriority(s.Journal.Priority); !ok {
+					return fmt.Errorf("services[%d] (%s): bad journal.priority %q", i, s.Name, s.Journal.Priority)
+				}
+			}
+		}
+		hasSource := len(s.LogPaths) > 0 || s.Process.SystemdUnit != "" || s.Process.PIDFile != "" || s.Health.URL != "" || s.Journal.Unit != ""
 		if !hasSource {
-			return fmt.Errorf("services[%d] (%s): no log_paths, process, or health configured", i, s.Name)
+			return fmt.Errorf("services[%d] (%s): no log_paths, process, health, or journal configured", i, s.Name)
 		}
 	}
 	for i, r := range c.Redact {
@@ -165,4 +189,39 @@ func (c *Config) Token() (string, error) {
 		return "", fmt.Errorf("env var %s is unset", c.Discord.TokenEnv)
 	}
 	return v, nil
+}
+
+// parseJournalPriority maps a syslog level name or numeric string ("0".."7")
+// to its journald PRIORITY number. Returns false on unknown input.
+func parseJournalPriority(s string) (int, bool) {
+	switch s {
+	case "0", "emerg", "emergency":
+		return 0, true
+	case "1", "alert":
+		return 1, true
+	case "2", "crit", "critical":
+		return 2, true
+	case "3", "err", "error":
+		return 3, true
+	case "4", "warning", "warn":
+		return 4, true
+	case "5", "notice":
+		return 5, true
+	case "6", "info":
+		return 6, true
+	case "7", "debug":
+		return 7, true
+	}
+	return 0, false
+}
+
+// JournalPriority returns the configured priority threshold (max PRIORITY
+// kept) for this service's journal collector, or 3 (err) if unset.
+// The bool is false if the value is invalid; Validate guarantees it's true
+// for any Config returned from Load.
+func (j Journal) JournalPriority() (int, bool) {
+	if j.Priority == "" {
+		return 3, true
+	}
+	return parseJournalPriority(j.Priority)
 }

@@ -89,6 +89,17 @@ The user `siren` needs **read** access to the log files of every service it
 monitors. The simplest pattern is to add `siren` to the group that owns those
 logs (e.g. `sudo usermod -aG bots siren`).
 
+To use the **journal collector** for any service, the `siren` user must be
+able to read journald entries for other units. Add it to the
+`systemd-journal` group:
+
+```sh
+sudo usermod -aG systemd-journal siren
+```
+
+This grants read-only access to the journal and is sufficient for
+`journalctl -u <unit>` — no root or `sudo` required.
+
 ## 4. Configure
 
 `/etc/siren/siren.yaml` follows [siren.example.yaml](../siren.example.yaml).
@@ -205,6 +216,14 @@ operator's user ID in config matches their actual Discord ID.
 **`unit not found` warnings from `proc` collector.** The configured
 `systemd_unit` doesn't exist on this host, or `systemctl` isn't on `PATH` for
 user `siren`. Remove the `process` block from that service or fix the unit name.
+
+**`journalctl not found; journal collector disabled` log line.** `journalctl`
+is not on `PATH` for the `siren` user (unusual on a systemd host). Install
+`systemd` userspace tools or remove the `journal` block from that service.
+
+**Journal collector returns no events.** Confirm the user can read the unit's
+journal directly: `sudo -u siren journalctl -u <unit> -n 5`. If that fails
+with a permission error, add `siren` to the `systemd-journal` group (§3).
 
 **Lots of "no files matched glob" warnings.** The log path glob doesn't
 expand to anything at startup. Confirm the path on disk and that user `siren`
