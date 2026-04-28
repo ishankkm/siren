@@ -157,6 +157,16 @@ func (d *Discord) Reply(ctx context.Context, msg string) {
 	d.sendPlain(ctx, msg)
 }
 
+// Discord embed limits. See https://discord.com/developers/docs/resources/channel#embed-object-embed-limits
+const (
+	maxEmbedDescription = 4096
+	maxEmbedFieldValue  = 1024
+	// codeFenceOverhead is the length of the surrounding "```\n" and "\n```"
+	// added to the detail field value.
+	codeFenceOverhead = len("```\n") + len("\n```")
+	truncMarker       = "\n…(truncated)"
+)
+
 func (d *Discord) format(e event.Event) *discordgo.MessageEmbed {
 	summary := e.Summary
 	detail := e.Detail
@@ -164,9 +174,10 @@ func (d *Discord) format(e event.Event) *discordgo.MessageEmbed {
 		summary = d.redactor.Apply(summary)
 		detail = d.redactor.Apply(detail)
 	}
-	if len(detail) > 1800 {
-		detail = detail[:1800] + "\n…(truncated)"
-	}
+	summary = truncate(summary, maxEmbedDescription)
+	// detail is wrapped in a code fence in the field value, so the body
+	// itself must be <= maxEmbedFieldValue - codeFenceOverhead.
+	detail = truncate(detail, maxEmbedFieldValue-codeFenceOverhead)
 	color := severityColor(e.Severity)
 	embed := &discordgo.MessageEmbed{
 		Title:       fmt.Sprintf("[%s] %s", e.Service, e.Severity),
@@ -184,6 +195,18 @@ func (d *Discord) format(e event.Event) *discordgo.MessageEmbed {
 		}}
 	}
 	return embed
+}
+
+// truncate returns s shortened to at most max bytes, appending a truncation
+// marker when shortening occurs. The returned string is always <= max bytes.
+func truncate(s string, max int) string {
+	if len(s) <= max {
+		return s
+	}
+	if max <= len(truncMarker) {
+		return s[:max]
+	}
+	return s[:max-len(truncMarker)] + truncMarker
 }
 
 func severityColor(s event.Severity) int {
