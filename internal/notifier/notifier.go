@@ -197,16 +197,16 @@ func (d *Discord) format(e event.Event) *discordgo.MessageEmbed {
 	return embed
 }
 
-// truncate returns s shortened to at most max bytes, appending a truncation
-// marker when shortening occurs. The returned string is always <= max bytes.
-func truncate(s string, max int) string {
-	if len(s) <= max {
+// truncate returns s shortened to at most limit bytes, appending a truncation
+// marker when shortening occurs. The returned string is always <= limit bytes.
+func truncate(s string, limit int) string {
+	if len(s) <= limit {
 		return s
 	}
-	if max <= len(truncMarker) {
-		return s[:max]
+	if limit <= len(truncMarker) {
+		return s[:limit]
 	}
-	return s[:max-len(truncMarker)] + truncMarker
+	return s[:limit-len(truncMarker)] + truncMarker
 }
 
 func severityColor(s event.Severity) int {
