@@ -1,6 +1,6 @@
 # siren
 
-`siren` is a lightweight monitoring process that runs on the same machine as the services it watches (such as `src/bots`) and notifies a single operator over Discord via direct message.
+`siren` is a lightweight monitoring process that runs on the same machine as the services it watches and notifies a single operator over Discord via direct message.
 
 It is **not** a multi-tenant alerting platform. Communication is intentionally **1-on-1**: one siren instance, one operator, one DM channel.
 
@@ -42,10 +42,6 @@ Out of scope:
 - Metrics dashboards, long-term storage, or analytics.
 - Cross-host aggregation (run one siren per host instead).
 - Remediation or auto-restart of failed services.
-
-## Related
-
-- `src/bots` — the primary service siren is typically deployed alongside.
 
 ## Documentation
 
